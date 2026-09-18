@@ -24,17 +24,17 @@
 
 ## 使用前后，看图更直接
 
-下面是使用者提供的 **Team / Pro 对照截图**：原图上半部分为启用 STATE 后的请求，下半部分为未启用 STATE 的请求。保留原图的完整界面和上下顺序，用红框标出模型列，并标注“已启用 STATE / 未启用 STATE”。
+下面是这次更新的 **Team / Pro 原图**：原图上半部分为启用 STATE 后的请求，下半部分为未启用 STATE 的请求。保留原图的完整界面和上下顺序，用红框标出模型列，并标注“已启用 STATE / 未启用 STATE”。
 
-未启用时，日志显示请求 `gpt-6-astra`，上游响应为 `gpt-5.6-luna`，并标记“模型不一致”；启用后，这组截图里不再出现该标记。图片保持原始尺寸和界面布局，只添加红框、文字与必要的隐私遮挡；模型字段和请求记录顺序未改动。
+未启用时，日志显示请求 `gpt-6-astra`，上游响应为 `gpt-5.6-luna`，并标记“模型不一致”；启用后，这组截图里不再出现该标记。原图不缩放、不裁剪、不重排，顶部另加 Team / Pro 大标题，并添加红框、文字与必要的隐私遮挡；模型字段和请求记录顺序未改动。
 
 ### Team 对照
 
-![Team 原图：上半部分启用 STATE，下半部分未启用并显示上游 Luna 与模型不一致](docs/images/team-state-routing.png)
+![Team 原图：完整界面，上方启用 STATE、下方未启用并显示上游 Luna 与模型不一致](docs/images/team-state-routing.png)
 
 ### Pro 对照
 
-![Pro 原图：上半部分启用 STATE，下半部分未启用并显示上游 Luna 与模型不一致](docs/images/pro-state-routing.png)
+![Pro 原图：完整界面，上方启用 STATE、下方未启用并显示上游 Luna 与模型不一致](docs/images/pro-state-routing.png)
 
 ## 工作方式
 
