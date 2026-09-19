@@ -11,3 +11,5 @@ This is an unofficial source extension for Wei-Shaw/sub2api.
 Design reference: https://github.com/gylive/ccodex-sleep-state at commit `26b22196bf68b372d0daad9381f686a3321068d4`, specifically ticket lifecycle and status presentation ideas. No source code or dependencies from that project are included in this extension. This implementation uses Sub2API account persistence and fixed-business-proxy verification.
 
 Thanks to both upstream projects and community members for discussion and feedback. No affiliation or endorsement is implied.
+
+Direct-route contribution (2026-09-19): woai66 / 章永琪, commit `c0df12bf49ded9e34959353d3a290b0b6d932dfb` from https://github.com/woai66/sub2api-state-kit, originally submitted as https://github.com/woai66/sub2api-state-kit/pull/1. Adopted with original authorship and cherry-pick provenance retained. Allows STATE revalidation over the server direct route while retaining dynamic-pool harvesting and route-bound validation.
