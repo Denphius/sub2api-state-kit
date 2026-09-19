@@ -1,0 +1,106 @@
+name: Build and test complete distributions
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble verified complete source and source archives
+        run: python3 scripts/package_release.py source --work assembled --output artifacts
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: assembled/sub2api-state-kit_v0.2.0_full-source/frontend/pnpm-lock.yaml
+      - name: Install dependencies, check and build UI
+        working-directory: assembled/sub2api-state-kit_v0.2.0_full-source/frontend
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec vitest run src/components/account/__tests__/CodexAccountTicketSettings.spec.ts src/views/admin/__tests__/SettingsView.spec.ts src/i18n/__tests__/localeKeyCompleteness.spec.ts --maxWorkers=1 --minWorkers=1
+          pnpm run build
+      - name: Bundle embedded frontend for backend builders
+        run: tar -C assembled/sub2api-state-kit_v0.2.0_full-source/backend/internal/web -czf embedded-ui.tar.gz dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: embedded-ui
+          path: embedded-ui.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-source
+          path: artifacts/*
+
+  linux:
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the same source
+        run: python3 scripts/prepare.py source
+      - uses: actions/download-artifact@v4
+        with:
+          name: embedded-ui
+      - run: tar -C source/backend/internal/web -xzf embedded-ui.tar.gz
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: source/backend/go.mod
+          cache-dependency-path: source/backend/go.sum
+      - name: Backend regression tests
+        working-directory: source/backend
+        env:
+          GOMAXPROCS: 2
+        run: go test -p 1 ./internal/service ./internal/handler/admin ./internal/server/middleware -run 'Test.*(CodexTicket|CodexAccountTicket|OpenAICodexTicket|RedactAudit)' -count=1
+      - name: Build embedded native binary
+        working-directory: source/backend
+        env:
+          CGO_ENABLED: 0
+          GOMAXPROCS: 2
+        run: |
+          go build -p 1 -tags embed -trimpath -ldflags "-s -w -X main.Version=0.2.6-state-kit.0.2.0 -X main.Commit=$GITHUB_SHA -X main.BuildType=release" -o ../../sub2api ./cmd/server
+          ../../sub2api --version
+      - name: Package Linux deployment
+        run: python3 scripts/package_release.py runtime --work packages --output artifacts --source source --binary sub2api --arch '${{ matrix.arch }}'
+      - name: Start disposable clean deployment
+        working-directory: packages/sub2api-state-kit_v0.2.0_linux_${{ matrix.arch }}
+        run: |
+          sh init.sh
+          docker compose config --quiet
+          docker compose up -d --build --wait --wait-timeout 240
+      - name: Verify empty accounts, authentication, UI, STATE defaults and restart
+        env:
+          DIST: packages/sub2api-state-kit_v0.2.0_linux_${{ matrix.arch }}
+        run: |
+          python3 scripts/smoke_distribution.py "$DIST" > smoke-first.json
+          docker compose --project-directory "$DIST" restart sub2api
+          docker compose --project-directory "$DIST" up -d --wait --wait-timeout 180
+          python3 scripts/smoke_distribution.py "$DIST" > smoke-restart.json
+          cat smoke-first.json smoke-restart.json
+      - name: Stop disposable test containers
+        if: always()
+        working-directory: packages/sub2api-state-kit_v0.2.0_linux_${{ matrix.arch }}
+        run: docker compose down -v || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            artifacts/*
+            smoke-first.json
+            smoke-restart.json

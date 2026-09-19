@@ -21,7 +21,34 @@
 
 代码免费开源，欢迎使用、交流与改进。如果这个项目对你有帮助，希望顺手点一个 **Star ⭐**。
 
-这是基于 Sub2API **v0.2.6** 的非官方实验扩展，目前以精简源码覆盖包发布，不是可直接安装的插件，也不包含预先配置好的账号或代理。
+这是基于 Sub2API **v0.2.6** 的非官方实验扩展，同时提供**增量源码覆盖包**与**完整 Sub2API + STATE 部署版**。两种形式包含相同的 STATE 功能，都不附带作者的账号、代理/IP、API Key、票据或数据库。
+
+## 下载：完整部署版与增量版
+
+**只想部署使用，选择 [Release 中的完整部署包](https://github.com/wangyunjeff/sub2api-state-kit/releases/tag/v0.2.0)。** 它包含完整 Sub2API 后台和网关，以及本项目的 STATE 功能，不需要先安装原版，也不需要自己打补丁。
+
+| 文件 / 入口 | 用途 |
+| --- | --- |
+| `sub2api-state-kit_v0.2.0_linux_amd64.tar.gz` | 常见 x86_64 Linux 服务器；内含已编译程序、网页和 Docker Compose |
+| `sub2api-state-kit_v0.2.0_linux_arm64.tar.gz` | ARM64 Linux 服务器；内含已编译程序、网页和 Docker Compose |
+| `sub2api-state-kit_v0.2.0_full-source.zip` / `.tar.gz` | 完整上游源码 + STATE 修改、测试、Dockerfile 和部署说明；无需再次拼接源码 |
+| 本仓库 `overlay/` + `scripts/prepare.py` | 继续保留的增量形式，方便开发者查看修改、合并或自己构建 |
+
+GitHub 自动生成的 **Source code (zip/tar.gz)** 仍然是增量仓库本身；需要完整项目请选文件名带 **full-source** 的附件。
+
+新安装示例（需 Docker Compose v2 和 openssl）：
+
+```bash
+tar -xzf sub2api-state-kit_v0.2.0_linux_amd64.tar.gz
+cd sub2api-state-kit_v0.2.0_linux_amd64
+sh init.sh
+# 编辑 .env，设置自己的管理员邮箱、监听地址和端口
+docker compose up -d --build
+```
+
+ARM64 使用对应文件名。部署包里的程序已编译，`--build` 只组装运行镜像；首次仍需下载基础镜像。默认监听 `127.0.0.1:8080`，需要直接从外部访问时自行调整 `.env` 中的 `BIND_HOST`。管理员密码由 `init.sh` 在用户机器上随机生成，记录于本机 `.env`。
+
+首次安装是**空白实例**：自行添加账号、代理和 Key，STATE 总开关及账号开关默认关闭。已有生产实例请先备份、隔离测试，再替换应用，保留自己的配置和数据。详见 [完整部署说明](docs/full-release.md)。
 
 ## 相比上游增加了什么
 

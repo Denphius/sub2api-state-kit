@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.git
+*.log
+*.db
+data/
+postgres_data/
+redis_data/
+logs/
+tests/
+docs/
