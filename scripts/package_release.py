@@ -75,8 +75,7 @@ def deploy_files(tree, source=False):
         shutil.copyfile(path, tree / name)
     (tree / 'init.sh').chmod(0o755)
     if source:
-        path = tree / 'DEPLOY-STATE-KIT.md'
-        path.write_text(path.read_text().replace('docs/usage.md', 'docs/state-kit/usage.md') + '\n完整源码包需要编译：在本目录运行 `sh init.sh`、配置 `.env` 后执行 `docker compose up -d --build`，会编译完整前端和后端。无需编译的使用者请选择 Linux 部署包。\n')
+        shutil.copyfile(ROOT / 'release' / 'source-README.md', tree / 'DEPLOY-STATE-KIT.md')
 
 
 def source_package(args):
@@ -100,6 +99,10 @@ def source_package(args):
 
 
 def runtime_package(args):
+    header = args.binary.read_bytes()[:20]
+    machine = 62 if args.arch == 'amd64' else 183
+    if header[:6] != b'\x7fELF\x02\x01' or int.from_bytes(header[18:20], 'little') != machine:
+        raise ValueError('Expected a Linux ELF binary matching the selected architecture')
     tree = args.work / f'sub2api-state-kit_{args.version}_linux_{args.arch}'
     tree.mkdir()
     deploy_files(tree)
