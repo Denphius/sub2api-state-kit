@@ -72,7 +72,7 @@ def verify(package: Path, public: Path, openssl: str):
 def source_archive(destination: Path):
     # Explicit source-file allowlist; no .git, builds, databases, env files or credentials.
     files = {}
-    allowed = {".go", ".mod", ".sum", ".proto", ".json", ".md", ".html", ".js", ".css", ".py", ".txt", ".yaml"}
+    allowed = {".go", ".mod", ".sum", ".proto", ".json", ".md", ".html", ".js", ".cjs", ".css", ".py", ".txt", ".yaml"}
     for path in sorted(PLUGIN.rglob("*")):
         rel = path.relative_to(ROOT)
         if path.is_symlink() or not path.is_file() or path.suffix not in allowed:
