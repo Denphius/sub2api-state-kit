@@ -18,6 +18,7 @@ export interface CodexAccountTicketStatus {
   proxy_configured: boolean
   proxy_display: string
   fixed_proxy_configured: boolean
+  direct_route?: boolean
   state: 'disabled' | 'global_disabled' | 'waiting' | 'harvesting' | 'ready' | 'error'
   remaining_seconds: number
   // These fields are optional so older API responses and test fixtures remain valid.

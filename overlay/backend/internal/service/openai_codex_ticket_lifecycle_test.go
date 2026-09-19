@@ -83,6 +83,99 @@ func TestCodexAccountTicketHarvestAndFixedReplay(t *testing.T) {
 	restart.accountRepo = r
 	require.NotNil(t, restart.lookupOpenAICodexTicket(a, openAICodexTicketDefaultModel))
 }
+func TestCodexAccountTicketHarvestAndDirectReplay(t *testing.T) {
+	for _, plan := range []string{codexTicketPlanPro, codexTicketPlanTeam} {
+		t.Run(plan, func(t *testing.T) {
+			var calls atomic.Int64
+			u := &codexTicketFuncUpstream{proxy: func(req *http.Request, p string) (*http.Response, error) {
+				n := calls.Add(1)
+				if n == 1 {
+					require.Contains(t, p, "us.1024proxy.io")
+					require.Empty(t, req.Header.Get(openAICodexTurnStateHeader))
+				} else {
+					require.Equal(t, int64(2), n)
+					require.Empty(t, p)
+					require.Len(t, req.Header.Get(openAICodexTurnStateHeader), codexTicketTargetLength(plan))
+				}
+				response := codexTicketResponse()
+				response.Header.Set(openAICodexTurnStateHeader, fakeCodexTicketState(codexTicketTargetLength(plan)))
+				return response, nil
+			}}
+			s, repo := ticketJobService(t, u)
+			repo.accounts[0].Proxy, repo.accounts[0].ProxyID = nil, nil
+			ac := codexAccountTicketConfigOf(&repo.accounts[0])
+			ac.TicketPlan = plan
+			repo.accounts[0].Extra[codexAccountTicketConfigKey] = ac
+			waitCodexTicketJob(t, s.startCodexAccountTicketJob(context.Background(), 41, true))
+			require.Equal(t, int64(2), calls.Load())
+			status, err := s.GetCodexAccountTicketStatus(context.Background(), 41)
+			require.NoError(t, err)
+			require.Equal(t, "ready", status.State)
+			require.True(t, status.DirectRoute)
+			require.False(t, status.FixedProxyConfigured)
+			live, err := repo.GetByID(context.Background(), 41)
+			require.NoError(t, err)
+			headers := http.Header{}
+			require.NoError(t, s.applyOpenAICodexTicket(context.Background(), live, ac.Model, headers))
+			require.Len(t, headers.Get(openAICodexTurnStateHeader), codexTicketTargetLength(plan))
+			restart := ticketTestService(t, config.OpenAICodexTicketConfig{Enabled: true}, nil)
+			restart.accountRepo = repo
+			require.NotNil(t, restart.lookupOpenAICodexTicket(live, ac.Model))
+		})
+	}
+}
+
+func TestCodexAccountTicketRouteChangeRejectsLatePublication(t *testing.T) {
+	for _, toDirect := range []bool{true, false} {
+		name := "direct-to-proxy"
+		if toDirect {
+			name = "proxy-to-direct"
+		}
+		t.Run(name, func(t *testing.T) {
+			started, release := make(chan struct{}), make(chan struct{})
+			var once sync.Once
+			s, repo := ticketJobService(t, &codexTicketFuncUpstream{do: func(req *http.Request) (*http.Response, error) {
+				if req.Header.Get(openAICodexTurnStateHeader) != "" {
+					once.Do(func() {
+						close(started)
+						select {
+						case <-release:
+						case <-req.Context().Done():
+						}
+					})
+				}
+				return codexTicketResponse(), nil
+			}})
+			if !toDirect {
+				repo.accounts[0].Proxy, repo.accounts[0].ProxyID = nil, nil
+			}
+			job := s.startCodexAccountTicketJob(context.Background(), 41, true)
+			select {
+			case <-started:
+			case <-time.After(3 * time.Second):
+				t.Fatal("no replay probe")
+			}
+			repo.mu.Lock()
+			if toDirect {
+				repo.accounts[0].Proxy, repo.accounts[0].ProxyID = nil, nil
+			} else {
+				fixed := ticketTestAccount(41)
+				repo.accounts[0].Proxy, repo.accounts[0].ProxyID = fixed.Proxy, fixed.ProxyID
+			}
+			repo.mu.Unlock()
+			close(release)
+			waitCodexTicketJob(t, job)
+			live, err := repo.GetByID(context.Background(), 41)
+			require.NoError(t, err)
+			require.Nil(t, s.lookupOpenAICodexTicket(live, openAICodexTicketDefaultModel))
+			waitCodexTicketJob(t, s.startCodexAccountTicketJob(context.Background(), 41, true))
+			live, err = repo.GetByID(context.Background(), 41)
+			require.NoError(t, err)
+			require.NotNil(t, s.lookupOpenAICodexTicket(live, openAICodexTicketDefaultModel))
+		})
+	}
+}
+
 func TestCodexAccountTicketFixedProxyMismatchRejectsAndBoundsAttempts(t *testing.T) {
 	var calls atomic.Int64
 	u := &codexTicketFuncUpstream{do: func(req *http.Request) (*http.Response, error) {

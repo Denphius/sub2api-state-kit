@@ -69,6 +69,7 @@ type CodexAccountTicketStatus struct {
 	ProxyConfigured      bool                      `json:"proxy_configured"`
 	ProxyDisplay         string                    `json:"proxy_display"`
 	FixedProxyConfigured bool                      `json:"fixed_proxy_configured"`
+	DirectRoute          bool                      `json:"direct_route"`
 	State                string                    `json:"state"`
 	TicketUsable         bool                      `json:"ticket_usable"`
 	Refreshing           bool                      `json:"refreshing"`
@@ -120,15 +121,37 @@ func codexAccountTicketConfigOf(account *Account) codexAccountTicketConfig {
 	return out
 }
 
+func codexTicketDirectRoute(account *Account) bool {
+	return account != nil && account.ProxyID == nil && account.Proxy == nil
+}
+
+func codexTicketBusinessProxyURL(account *Account) (string, bool) {
+	if codexTicketDirectRoute(account) {
+		return "", true
+	}
+	if account == nil || account.ProxyID == nil || account.Proxy == nil {
+		return "", false
+	}
+	return account.Proxy.URL(), true
+}
+
 func codexAccountTicketEligible(account *Account) bool {
-	return isOpenAICodexTicketAccount(account) && account.Status == StatusActive && account.Proxy != nil && account.ProxyID != nil
+	_, routeValid := codexTicketBusinessProxyURL(account)
+	return isOpenAICodexTicketAccount(account) && account.Status == StatusActive && routeValid
 }
 
 func codexTicketFixedProxyFingerprint(account *Account) string {
-	if account == nil || account.Proxy == nil || account.ProxyID == nil {
+	proxyURL, routeValid := codexTicketBusinessProxyURL(account)
+	if !routeValid {
 		return ""
 	}
-	raw := fmt.Sprintf("%d\x00%d\x00%s\x00%v", account.ID, *account.ProxyID, account.Proxy.URL(), account.Credentials["chatgpt_account_id"])
+	var raw string
+	if codexTicketDirectRoute(account) {
+		raw = fmt.Sprintf("%d\x00direct\x00%v", account.ID, account.Credentials["chatgpt_account_id"])
+	} else {
+		// 保留已有代理指纹格式，避免升级使仍有效的票据失效。
+		raw = fmt.Sprintf("%d\x00%d\x00%s\x00%v", account.ID, *account.ProxyID, proxyURL, account.Credentials["chatgpt_account_id"])
+	}
 	digest := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(digest[:])
 }
@@ -169,7 +192,7 @@ func (s *OpenAIGatewayService) GetCodexAccountTicketStatus(ctx context.Context, 
 	ac := codexAccountTicketConfigOf(account)
 	pool := s.openAICodexTicketHarvestProxyURLContext(ctx)
 	poolConfigured := pool != "" && ValidateOpenAICodexTicketHarvestProxyURL(pool) == nil
-	status := &CodexAccountTicketStatus{TicketPlan: ac.TicketPlan, TargetLength: codexTicketTargetLength(ac.TicketPlan), Enabled: ac.Enabled, GlobalEnabled: s.openAICodexTicketEnabledContext(ctx), Model: ac.Model, ProxyConfigured: poolConfigured, FixedProxyConfigured: account.Proxy != nil && account.ProxyID != nil, State: "waiting"}
+	status := &CodexAccountTicketStatus{TicketPlan: ac.TicketPlan, TargetLength: codexTicketTargetLength(ac.TicketPlan), Enabled: ac.Enabled, GlobalEnabled: s.openAICodexTicketEnabledContext(ctx), Model: ac.Model, ProxyConfigured: poolConfigured, FixedProxyConfigured: account.Proxy != nil && account.ProxyID != nil, DirectRoute: codexTicketDirectRoute(account), State: "waiting"}
 	status.Watchdog = codexTicketWatchdogStatusOf(account, ac.Enabled && status.GlobalEnabled)
 	if parsed, err := url.Parse(strings.ReplaceAll(pool, "{sid}", "%7Bsid%7D")); err == nil {
 		status.ProxyDisplay = parsed.Host
@@ -218,7 +241,7 @@ func (s *OpenAIGatewayService) GetCodexAccountTicketStatus(ctx context.Context, 
 		status.CapturedAt = nil
 		status.ExpiresAt = nil
 		status.RemainingSeconds = 0
-		status.LastError = "Account must be active and have a fixed business proxy"
+		status.LastError = "Account must be active and use a valid business route (fixed proxy or server direct connection)"
 	}
 	return status, nil
 }
@@ -252,9 +275,13 @@ func (s *OpenAIGatewayService) ConfigureCodexAccountTicket(ctx context.Context, 
 		return nil, apperrors.BadRequest("CODEX_TICKET_GLOBAL_PROXY", "Configure the dynamic proxy pool in gateway settings, not per account")
 	}
 	pool := s.openAICodexTicketHarvestProxyURLContext(ctx)
-	if next.Enabled && (pool == "" || ValidateOpenAICodexTicketHarvestProxyURL(pool) != nil || account.Proxy == nil || account.ProxyID == nil) {
+	if next.Enabled && (pool == "" || ValidateOpenAICodexTicketHarvestProxyURL(pool) != nil) {
 		s.openaiCodexAccountMu.Unlock()
-		return nil, apperrors.BadRequest("CODEX_TICKET_PROXY_REQUIRED", "Configure the global dynamic proxy pool and this account's fixed business proxy first")
+		return nil, apperrors.BadRequest("CODEX_TICKET_PROXY_REQUIRED", "Configure a valid global dynamic proxy pool first")
+	}
+	if next.Enabled && !codexAccountTicketEligible(account) {
+		s.openaiCodexAccountMu.Unlock()
+		return nil, apperrors.BadRequest("CODEX_TICKET_ACCOUNT_INACTIVE", "Account must be active and use a valid business route (fixed proxy or server direct connection)")
 	}
 	// Retire stored account overrides without invalidating an otherwise valid ticket.
 	next.ProxyURL = ""
@@ -313,7 +340,7 @@ func (s *OpenAIGatewayService) HarvestCodexAccountTicket(ctx context.Context, id
 		return nil, apperrors.BadRequest("CODEX_TICKET_DISABLED", "Enable STATE tickets for this account first")
 	}
 	if !codexAccountTicketEligible(account) {
-		return nil, apperrors.BadRequest("CODEX_TICKET_ACCOUNT_INACTIVE", "Account must be active and have a fixed business proxy")
+		return nil, apperrors.BadRequest("CODEX_TICKET_ACCOUNT_INACTIVE", "Account must be active and use a valid business route (fixed proxy or server direct connection)")
 	}
 	pool := s.openAICodexTicketHarvestProxyURLContext(ctx)
 	if pool == "" || ValidateOpenAICodexTicketHarvestProxyURL(pool) != nil {
@@ -442,7 +469,12 @@ func (s *OpenAIGatewayService) runCodexAccountTicketJob(ctx context.Context, id 
 			if ctx.Err() != nil || !s.openAICodexTicketEnabledContext(ctx) || s.openAICodexTicketHarvestProxyURLContext(ctx) != job.harvestProxyURL {
 				return
 			}
-			replayState, status, err := s.fireCodexAccountTicketProbe(ctx, account, token, ac.Model, account.Proxy.URL(), state, timeout)
+			businessProxy, routeValid := codexTicketBusinessProxyURL(account)
+			if !routeValid {
+				lastError = "Account business route is incomplete"
+				return
+			}
+			replayState, status, err := s.fireCodexAccountTicketProbe(ctx, account, token, ac.Model, businessProxy, state, timeout)
 			if reason := codexTicketProbeRejection(status); reason != "" {
 				lastError = reason
 				return
@@ -464,7 +496,7 @@ func (s *OpenAIGatewayService) runCodexAccountTicketJob(ctx context.Context, id 
 				s.openaiCodexAccountMu.Unlock()
 				return
 			}
-			lastError = "STATE did not preserve the target model on this account's fixed proxy"
+			lastError = "STATE did not preserve the target model on this account's business route"
 		}
 		if attempt < codexTicketMaxAttempts {
 			timer := time.NewTimer(time.Second)

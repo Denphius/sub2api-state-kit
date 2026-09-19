@@ -53,7 +53,7 @@
     },
     "backend/internal/service/openai_codex_ticket_account.go": {
       "base_sha256": null,
-      "overlay_sha256": "5c1768cb8f03dae7eafc7aa0f6b1eda31c8355ac2b2cea4e94f45d45b3fc11b5"
+      "overlay_sha256": "ab32017c07a60547c628df8c13fa09c46c8416769cdf8bc8d3f0b1cd072cedb9"
     },
     "backend/internal/service/openai_codex_ticket_global_pool_test.go": {
       "base_sha256": null,
@@ -61,7 +61,7 @@
     },
     "backend/internal/service/openai_codex_ticket_lifecycle_test.go": {
       "base_sha256": "c8ba9a58e8dfe1050ba0409e1ab2a5574900995e75cef032fd9b9bd4671df78e",
-      "overlay_sha256": "22afb7423cbfbc2852eab8da7a72088e466ec5f08463d977374f96ee48f0b49e"
+      "overlay_sha256": "cced18c2636c2017518fbbed6ffb941f7b816c3c8d04b8cf9b56cf11750b3b9e"
     },
     "backend/internal/service/openai_codex_ticket_plan_test.go": {
       "base_sha256": null,
@@ -73,7 +73,7 @@
     },
     "backend/internal/service/openai_codex_ticket_test.go": {
       "base_sha256": "e8ac51ffb6681d8a7cdec2e2d75152f9dd8bd9916b5df0ac529aae23058e5772",
-      "overlay_sha256": "19ad2c1ccc63b2d9631df9e81ebd44178cc8cd39e2f1efa96a62815f01a94c52"
+      "overlay_sha256": "a69efd077395b47ba874185dbc8724799a7351a259fca6f80ecfe7f82578fc06"
     },
     "backend/internal/service/openai_codex_ticket_transport.go": {
       "base_sha256": null,
@@ -133,7 +133,7 @@
     },
     "frontend/src/api/admin/codexTickets.ts": {
       "base_sha256": null,
-      "overlay_sha256": "8d49639c1e01624c31c70dbc0c85c024c6ef8b67e38ab84a4654cdc90ee4f132"
+      "overlay_sha256": "b06e7c86a4239785773d639a51fd23a716be75ae05a8583dc16ba9407833e750"
     },
     "frontend/src/components/account/AccountUsageCell.vue": {
       "base_sha256": "db168b09d1917fe9ce63b2e422405c4d8f9bcd784a5a7e98b954a44c103e793c",
@@ -141,7 +141,7 @@
     },
     "frontend/src/components/account/CodexAccountTicketSettings.vue": {
       "base_sha256": null,
-      "overlay_sha256": "fbe74470dbc7b6ab58aecf4a2a95acb976ec6c479ec78b98b5e1e441d2286859"
+      "overlay_sha256": "3d2eaf99e2b43c64454469dae2b364068aaaed130b3e96b3427a3ccf1ebb2520"
     },
     "frontend/src/components/account/EditAccountModal.vue": {
       "base_sha256": "6169491db19a4338f644826b5de75e42fc892a718ac197bce06eb1d51f96a440",
@@ -149,11 +149,11 @@
     },
     "frontend/src/components/account/__tests__/CodexAccountTicketSettings.spec.ts": {
       "base_sha256": null,
-      "overlay_sha256": "de009db94752ccd7f96118c24422d895c3c5adf7c6fda9d69b2a6f21feb1e198"
+      "overlay_sha256": "ac59b5d6e104edc5f358f200beeb128915d8ab98275bcc98256878ceefdb9f82"
     },
     "frontend/src/i18n/locales/en/admin/accounts.ts": {
       "base_sha256": "0e27441b25d3a8bd7048f7972172c5cb5c81679f30fec88ce70794ea88f62b5e",
-      "overlay_sha256": "a8a6501219486fd18bb60de7a9c4370fd5c9334deb96ffd89112218c54c2a713"
+      "overlay_sha256": "c3ece77587dad69404500eca58743aec2e8f2416f83035e20e40b4c980ee4ed1"
     },
     "frontend/src/i18n/locales/en/admin/settings.ts": {
       "base_sha256": "7e5c3d1f5dd13fdfe10b01b684ffdf5658481b3e8a2193f1baff2602cdf43d68",
@@ -161,7 +161,7 @@
     },
     "frontend/src/i18n/locales/zh/admin/accounts.ts": {
       "base_sha256": "2d03b3ff311d0d039cd39421aba1b0c048f83dd88d24024ed9d152b18572824d",
-      "overlay_sha256": "ef25a2eedc582ff0889321e81870eb5c87cdbe0788509ef49a386e2ce0d9d084"
+      "overlay_sha256": "bc16e5747a8a9cf98a8ea256480f502ebbda7d4f9e4b9ac908ce6e0d2a1a1a9a"
     },
     "frontend/src/i18n/locales/zh/admin/settings.ts": {
       "base_sha256": "ece1fc402247e19a23ae8f8f7f72f79b206ac675c7ef598f5824d603d2cbb5fc",
