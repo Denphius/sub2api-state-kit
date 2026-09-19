@@ -245,3 +245,9 @@ docker build --build-arg VERSION=0.2.6-state-kit.0.1.0 -t sub2api-state-kit:0.1.
 ## 许可证
 
 遵循上游 GNU LGPL v3，详见 [LICENSE](LICENSE)。保留上游版权与署名；覆盖文件是在上游基础上的修改或本扩展新增文件。
+
+## ☕ 请作者喝杯咖啡
+
+如果这个项目帮到了你，欢迎自愿请作者喝杯咖啡，支持后续维护与更新。金额随意，感谢支持！代码始终免费开源，不打赏也可以正常使用。
+
+<img src="docs/images/wechat-coffee.jpg" alt="微信收款码：自愿请作者喝杯咖啡" width="300" />
