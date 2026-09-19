@@ -9,7 +9,9 @@ on:
         default: v0.3.0
 
 permissions:
-  contents: read
+  # GitHub requires write access to retrieve unpublished draft release assets.
+  # This workflow only downloads them; it never creates/edits a release or tag.
+  contents: write
 
 jobs:
   plugin:
