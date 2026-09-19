@@ -252,4 +252,4 @@ docker build --build-arg VERSION=0.2.6-state-kit.0.1.0 -t sub2api-state-kit:0.1.
 
 如果这个项目帮到了你，欢迎自愿请作者喝杯咖啡，支持后续维护与更新。金额随意，感谢支持！代码始终免费开源，不打赏也可以正常使用。
 
-<img src="docs/images/wechat-coffee.jpg" alt="微信收款码：自愿请作者喝杯咖啡" width="300" />
+<img src="docs/images/wechat-coffee.png" alt="微信收款码：自愿请作者喝杯咖啡" width="300" />
